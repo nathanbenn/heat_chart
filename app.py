@@ -122,6 +122,7 @@ def buildHexagon(x, y, ax, count, player_average):
 def buildCourt(ax):
     color = 'black'
     lw = 4
+    transparency = .7
 
     # Create court lines
     # citation: https://github.com/eyalshafran/NBAapi
@@ -159,9 +160,10 @@ def buildCourt(ax):
                     color=color)
 
     # List of the court elements to be plotted onto the axes
-    court_elements = [hoop, backboard, outer_box, inner_box, top_free_throw, bottom_free_throw, restricted, corner_three_a, corner_three_b, three_arc]
+    court_elements = [hoop, backboard, outer_box, top_free_throw, bottom_free_throw, restricted, corner_three_a, corner_three_b, three_arc]
 
     for element in court_elements:
+        element.set_alpha(transparency)
         ax.add_patch(element)
 
 # Get shot location
@@ -225,15 +227,11 @@ def getAverage(z):
         return 0
 
 # Citation: http://www.eyalshafran.com/grantland_shotchart.html
-def shotchartdetail(leagueid='00',season='2017-18',seasontype='Regular Season',teamid=0,
-                    playerid=0,gameid='',outcome='',location='',month=0,
-                    seasonseg='',datefrom='',dateto='',oppteamid=0,vsconf='',
-                    vsdiv='',pos='',gameseg='',per=0,lastngames=0,aheadbehind='',
-                    contextmeasure='FGM',clutchtime='',rookieyear=''):
+def getShotChart(playerId, season):
 
     print("Hey this thing works")
 
-    url = 'http://stats.nba.com/stats/shotchartdetail?Period=0&VsConference=&LeagueID=00&LastNGames=0&TeamID=0&Position=&Location=&Outcome=&ContextMeasure=FGA&DateFrom=&StartPeriod=&DateTo=&OpponentTeamID=0&ContextFilter=&RangeType=&Season=2015-16&AheadBehind=&PlayerID=201939&EndRange=&VsDivision=&PointDiff=&RookieYear=&GameSegment=&Month=0&ClutchTime=&StartRange=&EndPeriod=&SeasonType=Regular+Season&SeasonSegment=&GameID=&PlayerPosition='
+    url = 'http://stats.nba.com/stats/shotchartdetail?Period=0&VsConference=&LeagueID=00&LastNGames=0&TeamID=0&Position=&Location=&Outcome=&ContextMeasure=FGA&DateFrom=&StartPeriod=&DateTo=&OpponentTeamID=0&ContextFilter=&RangeType=&Season=2017-18&AheadBehind=&PlayerID=' + playerId + '&EndRange=&VsDivision=&PointDiff=&RookieYear=&GameSegment=&Month=0&ClutchTime=&StartRange=&EndPeriod=&SeasonType=Regular+Season&SeasonSegment=&GameID=&PlayerPosition='
 
     u_a = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36"
 
@@ -299,7 +297,7 @@ def shotchartdetail(leagueid='00',season='2017-18',seasontype='Regular Season',t
             shot_count = counts[offc]
             buildHexagon(binx, biny, ax, shot_count, player_average)
 
-    # Build court outline
+    # Build court
     buildCourt(ax)
     buildKey(ax)
     buildSizeKey(ax)
@@ -313,6 +311,37 @@ def shotchartdetail(leagueid='00',season='2017-18',seasontype='Regular Season',t
 # if __name__ == '__main__':
 #     app.run(debug=True)
 
-shotchartdetail(203459, season='2017-18') 
+# Citation: http://www.eyalshafran.com/grantland_shotchart.html
+def commonallplayers(currentseason=0,leagueid='00',season='2015-16'):
+    url = 'http://stats.nba.com/stats/commonallplayers?'
+    api_param = {
+        'IsOnlyCurrentSeason' : currentseason,
+        'LeagueID' : leagueid,
+        'Season' : season,             
+    }
+    u_a = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36"
+    response = requests.get(url,params=api_param,headers={"USER-AGENT":u_a})
+    data = response.json()
+    return pd.DataFrame(data['resultSets'][0]['rowSet'],columns=data['resultSets'][0]['headers'])
+
+def getPlayerId(name):
+    player_list = commonallplayers(currentseason=0)
+
+    player = player_list.loc[player_list['DISPLAY_FIRST_LAST'] == name]
+
+    print("Player:", player)
+
+    playerId = player['PERSON_ID']
+    playerId = playerId.iloc[0]
+    print("Player Id:", playerId)
+    playerId = str(playerId)
+    return playerId
+
+
+# playerId = '1628384'
+# getShotChart(playerId, '2017-2018') 
+
+playerId = getPlayerId('Damian Lillard')
+getShotChart(playerId, '2017-2018') 
 
 # pprint (shotchart)
