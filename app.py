@@ -55,8 +55,19 @@ def getShotDifference(x, y, player_average):
     shot_difference = shot_average.iloc[0]
     return shot_difference
 
+def buildText(name, year):
+    plt.text(0,-7.5, (name + "   " + year) , color='black', horizontalalignment='center')
+    plt.text(-17.3, -8.5,'Less',horizontalalignment='center',verticalalignment='center')
+    plt.text(-21, -8.5,'More',horizontalalignment='center',verticalalignment='center')
+    plt.text(21,-8.5,'Cold',horizontalalignment='center',verticalalignment='center')
+    plt.text(15.4,-8.5,'Hot',horizontalalignment='center',verticalalignment='center')
+
+def getColors():
+    colors = ['#d10240', '#f97306', '#ffb375', '#fff7bc', '#ccfffc']
+    return colors
+
 def buildSizeKey(ax):
-    colors = ['#d10240', '#f4aa42', '#fff7bc', '#bdfcd6', '#ccfffc']
+    colors = getColors()
     x =  -21
     y = -7
     color = 2
@@ -74,11 +85,8 @@ def buildSizeKey(ax):
         change -= 0.1
         offset -= 0.2
 
-    plt.text(-17, -8.5,'Less',horizontalalignment='center',verticalalignment='center')
-    plt.text(-21, -8.5,'More',horizontalalignment='center',verticalalignment='center')
-
 def buildKey(ax):
-    colors = ['#d10240', '#f4aa42', '#fff7bc', '#bdfcd6', '#ccfffc']
+    colors = getColors()
     x =  21
     y = -7
     color = 4
@@ -92,19 +100,16 @@ def buildKey(ax):
         x =  x - 1.4
         color -= 1
 
-    plt.text(21,-8.5,'Cold',horizontalalignment='center',verticalalignment='center')
-    plt.text(15.4,-8.5,'Hot',horizontalalignment='center',verticalalignment='center')
+def getHexagonColor(average):
+    colors = getColors()
 
-def getColor(average):
-    colors = ['#d10240', '#f4aa42', '#fff7bc', '#bdfcd6', '#ccfffc']
-
-    if average >= 0.05:
+    if average >= 0.07:
         return colors[0]
-    elif average >= 0.02:
+    elif average >= 0.03:
         return colors[1]
-    elif average >= -0.02:
+    elif average >= -0.03:
         return colors[2]
-    elif average >= -0.04:
+    elif average >= -0.07:
         return colors[3]
     else:
         return colors[4]
@@ -112,7 +117,7 @@ def getColor(average):
 def buildHexagon(x, y, ax, count, player_average):
     size = setHexagonSize(count)
     shot_difference = getShotDifference(x, y, player_average)
-    color = getColor(shot_difference)
+    color = getHexagonColor(shot_difference)
 
     hexagon = patches.RegularPolygon((x, y), 6, size, fill=True)
     hexagon.set_facecolor(color)
@@ -122,7 +127,7 @@ def buildHexagon(x, y, ax, count, player_average):
 def buildCourt(ax):
     color = 'black'
     lw = 4
-    transparency = .7
+    transparency = .5
 
     # Create court lines
     # citation: https://github.com/eyalshafran/NBAapi
@@ -227,9 +232,7 @@ def getAverage(z):
         return 0
 
 # Citation: http://www.eyalshafran.com/grantland_shotchart.html
-def getShotChart(playerId, season):
-
-    print("Hey this thing works")
+def getShotChart(playerName, playerId, season):
 
     url = 'http://stats.nba.com/stats/shotchartdetail?Period=0&VsConference=&LeagueID=00&LastNGames=0&TeamID=0&Position=&Location=&Outcome=&ContextMeasure=FGA&DateFrom=&StartPeriod=&DateTo=&OpponentTeamID=0&ContextFilter=&RangeType=&Season=2017-18&AheadBehind=&PlayerID=' + playerId + '&EndRange=&VsDivision=&PointDiff=&RookieYear=&GameSegment=&Month=0&ClutchTime=&StartRange=&EndPeriod=&SeasonType=Regular+Season&SeasonSegment=&GameID=&PlayerPosition='
 
@@ -301,11 +304,13 @@ def getShotChart(playerId, season):
     buildCourt(ax)
     buildKey(ax)
     buildSizeKey(ax)
+    buildText(playerName, year)
     ax.axis('off')
-    plt.savefig('testplot.png')
 
-    # print(shots)
-    
+    # Save file
+    playerName = playerName.replace(" ", "_")
+    fileName = playerName + '_' + season + "_" + playerId 
+    plt.savefig(fileName, bbox_inches='tight')
 
 # start the server with the 'run()' method
 # if __name__ == '__main__':
@@ -341,7 +346,9 @@ def getPlayerId(name):
 # playerId = '1628384'
 # getShotChart(playerId, '2017-2018') 
 
-playerId = getPlayerId('Damian Lillard')
-getShotChart(playerId, '2017-2018') 
+playerName = 'Stephen Curry'
+year = '2017-2018'
+playerId = getPlayerId(playerName)
+getShotChart(playerName, playerId, year) 
 
 # pprint (shotchart)
