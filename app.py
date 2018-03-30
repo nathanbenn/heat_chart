@@ -1,46 +1,16 @@
-# import the Flask class from the flask module
-from flask import Flask, render_template
-from pprint import pprint
-import goldsberry
+import sys
 import requests
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt 
-from matplotlib.patches import Circle, Rectangle, Arc
-from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as patches
 
-# # create the application object
-# app = Flask(__name__)
-
-#This part grabs all of the unique player identifiers for the current NBA season
-#Do not modify this section
-players = goldsberry.PlayerList(Season='2016-17')
-players = pd.DataFrame(players.players())
-players = players['PERSON_ID'].tolist()
-players = [str(i) for i in players]
-
-# pprint ((players._data_tables['resultSets'][0]))
-
-# # use decorators to link the function to a url
-# @app.route('/')
-# def home():
-#     return "Hello, World!"  # return a string
-
-# @app.route('/welcome')
-# def welcome():
-#     return render_template('welcome.html')  # render a template
-
-def customFunc(x, y):
-    print("This is x: ", x)
-    return 16
-
 def setHexagonSize(count):
     if count > 4:
         return 0.8
-    elif count >= 2 and count <= 3:
+    elif count >= 2 and count <= 4:
         return 0.5
     elif count >= 1 and count < 2:
         return 0.3
@@ -52,15 +22,22 @@ def getShotDifference(x, y, player_average):
     shot_range = player_average.loc[player_average['SHOT_ZONE_RANGE'] == location[0]] 
     shot_range = shot_range.loc[player_average['SHOT_ZONE_AREA'] == location[1]]
     shot_average = shot_range['difference']
+
+    # Error check for empty dataframe
+    if shot_range.empty:
+        return None
+
     shot_difference = shot_average.iloc[0]
     return shot_difference
 
-def buildText(name, year):
-    plt.text(0,-7.5, (name + "   " + year) , color='black', horizontalalignment='center')
-    plt.text(-17.3, -8.5,'Less',horizontalalignment='center',verticalalignment='center')
-    plt.text(-21, -8.5,'More',horizontalalignment='center',verticalalignment='center')
-    plt.text(21,-8.5,'Cold',horizontalalignment='center',verticalalignment='center')
-    plt.text(15.4,-8.5,'Hot',horizontalalignment='center',verticalalignment='center')
+def buildText(name, year, textColor):
+    textSize = 20 
+
+    plt.text(0,-7.5, (name + "   " + year), horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(-17.3, -8.5,'Less',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(-21, -8.5,'More',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(21,-8.5,'Cold',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(15.4,-8.5,'Hot',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
 
 def getColors():
     colors = ['#d10240', '#f97306', '#ffb375', '#fff7bc', '#ccfffc']
@@ -117,6 +94,11 @@ def getHexagonColor(average):
 def buildHexagon(x, y, ax, count, player_average):
     size = setHexagonSize(count)
     shot_difference = getShotDifference(x, y, player_average)
+
+    # Error check
+    if shot_difference == None:
+        return 0
+
     color = getHexagonColor(shot_difference)
 
     hexagon = patches.RegularPolygon((x, y), 6, size, fill=True)
@@ -124,44 +106,54 @@ def buildHexagon(x, y, ax, count, player_average):
     hexagon.set_edgecolor('black')
     ax.add_patch(hexagon)
 
-def buildCourt(ax):
-    color = 'black'
+def getFromNBA(playerId, season):
+    url = 'http://stats.nba.com/stats/shotchartdetail?Period=0&VsConference=&LeagueID=00&LastNGames=0&TeamID=0&Position=&Location=&Outcome=&ContextMeasure=FGA&DateFrom=&StartPeriod=&DateTo=&OpponentTeamID=0&ContextFilter=&RangeType=&Season=' + season + '&AheadBehind=&PlayerID=' + playerId + '&EndRange=&VsDivision=&PointDiff=&RookieYear=&GameSegment=&Month=0&ClutchTime=&StartRange=&EndPeriod=&SeasonType=Regular+Season&SeasonSegment=&GameID=&PlayerPosition='
+
+    u_a = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36"
+
+    # scrapping
+    response = requests.get(url, headers={"USER-AGENT":u_a})
+    data = response.json()
+    return data
+
+def buildCourt(ax, color):
     lw = 4
     transparency = .5
 
     # Create court lines
     # citation: https://github.com/eyalshafran/NBAapi
-    hoop = Circle((0, 0), radius=0.75, linewidth=lw/2, color=color, fill=False)
+    hoop = patches.Circle((0, 0), radius=0.75, linewidth=lw/2, color=color, fill=False)
 
     # Create backboard
-    backboard = Rectangle((-3, -0.75), 6, -0.1, linewidth=lw, color=color)
+    backboard = patches.Rectangle((-3, -0.75), 6, -0.1, linewidth=lw, color=color)
 
     # The paint
+
     # Create the outer box of the paint, width=16ft, height=19ft
-    outer_box = Rectangle((-8, -5.25), 16, 19, linewidth=lw, color=color,
+    outer_box = patches.Rectangle((-8, -5.25), 16, 19, linewidth=lw, color=color,
                           fill=False)
 
     # Create the inner box of the paint, widt=12ft, height=19ft
-    inner_box = Rectangle((-6, -5.25), 12, 19, linewidth=lw, color=color,
+    inner_box = patches.Rectangle((-6, -5.25), 12, 19, linewidth=lw, color=color,
                           fill=False)
 
     # Create free throw top arc
-    top_free_throw = Arc((0, 13.75), 12, 12, theta1=0, theta2=180,
+    top_free_throw = patches.Arc((0, 13.75), 12, 12, theta1=0, theta2=180,
                          linewidth=lw, color=color, fill=False)
     # Create free throw bottom arc
-    bottom_free_throw = Arc((0, 13.75), 12, 12, theta1=180, theta2=0,
+    bottom_free_throw = patches.Arc((0, 13.75), 12, 12, theta1=180, theta2=0,
                             linewidth=lw, color=color, linestyle='dashed')
     # Restricted Zone, it is an arc with 4ft radius from center of the hoop
-    restricted = Arc((0, 0), 8, 8, theta1=0, theta2=180, linewidth=lw,
+    restricted = patches.Arc((0, 0), 8, 8, theta1=0, theta2=180, linewidth=lw,
                      color=color)
 
-    corner_three_a = Rectangle((-22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw,
+    corner_three_a = patches.Rectangle((-22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw,
                                    color=color)
 
-    corner_three_b = Rectangle((22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw, color=color)
+    corner_three_b = patches.Rectangle((22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw, color=color)
 
     # 3pt arc - center of arc will be the hoop, arc is 23'9" away from hoop
-    three_arc = Arc((0, 0), 47.5, 47.5, theta1=np.arccos(22/23.75)*180/np.pi, theta2=180.0-np.arccos(22/23.75)*180/np.pi, linewidth=lw,
+    three_arc = patches.Arc((0, 0), 47.5, 47.5, theta1=np.arccos(22/23.75)*180/np.pi, theta2=180.0-np.arccos(22/23.75)*180/np.pi, linewidth=lw,
                     color=color)
 
     # List of the court elements to be plotted onto the axes
@@ -232,16 +224,7 @@ def getAverage(z):
         return 0
 
 # Citation: http://www.eyalshafran.com/grantland_shotchart.html
-def getShotChart(playerName, playerId, season):
-
-    url = 'http://stats.nba.com/stats/shotchartdetail?Period=0&VsConference=&LeagueID=00&LastNGames=0&TeamID=0&Position=&Location=&Outcome=&ContextMeasure=FGA&DateFrom=&StartPeriod=&DateTo=&OpponentTeamID=0&ContextFilter=&RangeType=&Season=2017-18&AheadBehind=&PlayerID=' + playerId + '&EndRange=&VsDivision=&PointDiff=&RookieYear=&GameSegment=&Month=0&ClutchTime=&StartRange=&EndPeriod=&SeasonType=Regular+Season&SeasonSegment=&GameID=&PlayerPosition='
-
-    u_a = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36"
-
-    # scrapping
-    response = requests.get(url, headers={"USER-AGENT":u_a})
-    data = response.json()
-
+def getShotChart(playerName, year, data, fileName, limit):
     # Get league averages
     averages = pd.DataFrame(data['resultSets'][1]['rowSet'], columns=data['resultSets'][1]['headers'])
 
@@ -257,7 +240,11 @@ def getShotChart(playerName, playerId, season):
     l_average['SHOT_ZONE_RANGE'] = l_range 
 
     # return only appropriate columns for player
-    player_info = shots[['SHOT_ZONE_AREA', 'SHOT_ZONE_RANGE', 'SHOT_MADE_FLAG']].copy()
+    player_info = shots[['LOC_X', 'LOC_Y', 'SHOT_ZONE_AREA', 'SHOT_ZONE_RANGE', 'SHOT_MADE_FLAG', 'GAME_DATE']].copy()
+
+    # Shot attempt range
+    player_info = player_info.loc[0 : limit]
+    print(player_info)
 
     # Reduce Player
     player_zones = player_info.groupby(['SHOT_ZONE_AREA', 'SHOT_ZONE_RANGE']).aggregate(np.average)
@@ -269,52 +256,40 @@ def getShotChart(playerName, playerId, season):
     player_average = player_average.merge(l_average, how = 'left', on = ['SHOT_ZONE_RANGE', 'SHOT_ZONE_AREA'])
     player_average['difference'] = player_average['SHOT_MADE_FLAG'] - player_average['FGP']
 
-    print("Averages")
-    print(l_average)
-
-    print("Player Averages")
-    print(player_average)
-
-    x = 0.1 * shots.LOC_X
-    y = 0.1 * shots.LOC_Y
-    z = shots.SHOT_MADE_FLAG
-
+    x = 0.1 * player_info.LOC_X
+    y = 0.1 * player_info.LOC_Y
+    z = player_info.SHOT_MADE_FLAG
+    
     # Get averages for hexbins
-    poly = plt.hexbin(x, y, C=z, gridsize=35, extent=[-25,25,-6.25,50-6.25], reduce_C_function=getAverage, mincnt=0)
+    poly = plt.hexbin(x, y, C=z, gridsize=35, extent=[-25,25,-6.25,50-6.25], reduce_C_function=getAverage)
     averages = poly.get_array()
 
     # Get count for hexbins
-    poly = plt.hexbin(x, y, gridsize=35, extent=[-25,25,-6.25,50-6.25], mincnt=1)
+    poly = plt.hexbin(x, y, gridsize=35, extent=[-25,25,-6.25,50-6.25])
     verts = poly.get_offsets()
     paths = poly.get_paths()
     counts = poly.get_array()
 
-    fig = plt.figure(figsize=(12,10),facecolor='white') 
+    fig = plt.figure(figsize=(26.8, 24)) 
+    # fig.set_facecolor("black")
     ax = plt.gca(xlim=[30,-30], ylim = [-10,40], aspect=1.0)
-    
-    # counts_test = np.zeros_like(counts)
-    
-    for offc in xrange(verts.shape[0]):
+
+    for offc in range(verts.shape[0]):
         binx,biny = verts[offc][0],verts[offc][1]
-        if counts[offc]:
+        if counts[offc] != 0:
             shot_count = counts[offc]
             buildHexagon(binx, biny, ax, shot_count, player_average)
 
-    # Build court
-    buildCourt(ax)
+    buildCourt(ax, 'white')
     buildKey(ax)
     buildSizeKey(ax)
-    buildText(playerName, year)
+    buildText(playerName, year, 'white')
+
+    # Hide axes
     ax.axis('off')
-
+    
     # Save file
-    playerName = playerName.replace(" ", "_")
-    fileName = playerName + '_' + season + "_" + playerId 
-    plt.savefig(fileName, bbox_inches='tight')
-
-# start the server with the 'run()' method
-# if __name__ == '__main__':
-#     app.run(debug=True)
+    plt.savefig((fileName), bbox_inches='tight', facecolor='black', transparent=False)
 
 # Citation: http://www.eyalshafran.com/grantland_shotchart.html
 def commonallplayers(currentseason=0,leagueid='00',season='2015-16'):
@@ -331,24 +306,55 @@ def commonallplayers(currentseason=0,leagueid='00',season='2015-16'):
 
 def getPlayerId(name):
     player_list = commonallplayers(currentseason=0)
-
     player = player_list.loc[player_list['DISPLAY_FIRST_LAST'] == name]
 
-    print("Player:", player)
+    if player.empty:
+        print("Player does not exist.")
+        sys.exit(2)
 
     playerId = player['PERSON_ID']
     playerId = playerId.iloc[0]
-    print("Player Id:", playerId)
     playerId = str(playerId)
     return playerId
 
+def getShotVolume(data):
+    # Get player shots
+    shots = pd.DataFrame(data['resultSets'][0]['rowSet'], columns=data['resultSets'][0]['headers'])
+    volume = len(shots.index)
+    return volume
 
-# playerId = '1628384'
-# getShotChart(playerId, '2017-2018') 
+def createSeries(playerName, year):
+    playerId = getPlayerId(playerName)
+    data = getFromNBA(playerId, year)
+    size = getShotVolume(data)
 
-playerName = 'Stephen Curry'
-year = '2017-2018'
-playerId = getPlayerId(playerName)
-getShotChart(playerName, playerId, year) 
+    for index in range(0, size):
+        fileName = str(index)
+        getShotChart(" ", " ", data, fileName, index) 
 
-# pprint (shotchart)
+def shotChart(playerName, year):
+    playerId = getPlayerId(playerName)
+    print("Player id")
+    print(playerId)
+    data = getFromNBA(playerId, year)
+    size = getShotVolume(data)
+
+    fileName = playerName + "_" + year
+    getShotChart(playerName, year, data, fileName, size) 
+
+
+def main():
+    print(sys.argv[1])
+
+    if len(sys.argv) < 3:
+        print ("usage: %s <firstname> <lastname> <year>" % (sys.argv[0]))
+        print ("example: %s Damian Lillard 2017-18" sys.argv[0]))
+        sys.exit(2)
+
+    playerName = sys.argv[1] + " " + sys.argv[2]
+
+    print(playerName)
+
+    shotChart(playerName, '2017-18')
+
+main()
