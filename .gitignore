@@ -1,0 +1,8 @@
+*.png
+distribute_setup.py
+hex_shapes
+heat_check
+*.swp
+.DS_Store
+
+.idea

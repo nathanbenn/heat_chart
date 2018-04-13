@@ -2,12 +2,12 @@ import sys
 import requests
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt 
-from matplotlib.collections import PatchCollection
+import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as patches
 
 def setHexagonSize(count):
+    """Build hexagon based on shot volume."""
     if count > 4:
         return 0.8
     elif count >= 2 and count <= 4:
@@ -18,8 +18,9 @@ def setHexagonSize(count):
         return 0
 
 def getShotDifference(x, y, player_average):
+    """Return difference between player shot average and league average"""
     location = shot_zone(x, y)
-    shot_range = player_average.loc[player_average['SHOT_ZONE_RANGE'] == location[0]] 
+    shot_range = player_average.loc[player_average['SHOT_ZONE_RANGE'] == location[0]]
     shot_range = shot_range.loc[player_average['SHOT_ZONE_AREA'] == location[1]]
     shot_average = shot_range['difference']
 
@@ -31,21 +32,24 @@ def getShotDifference(x, y, player_average):
     return shot_difference
 
 def buildText(name, year, textColor):
-    textSize = 20 
+    """Create text on court for player name and legend."""
+    textSize = 20
 
-    plt.text(0,-7.5, (name + "   " + year), horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
-    plt.text(-17.3, -8.5,'Less',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
-    plt.text(-21, -8.5,'More',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
-    plt.text(21,-8.5,'Cold',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
-    plt.text(15.4,-8.5,'Hot',horizontalalignment='center',verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(0, -7.5, (name + "   " + year), horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(-17.3, -8.5, 'Less', horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(-21, -8.5, 'More', horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(21, -8.5, 'Cold', horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
+    plt.text(15.4, -8.5, 'Hot', horizontalalignment='center', verticalalignment='center', fontsize=textSize, color=textColor)
 
 def getColors():
+    """Hexagon colors."""
     colors = ['#d10240', '#f97306', '#ffb375', '#fff7bc', '#ccfffc']
     return colors
 
 def buildSizeKey(ax):
+    """Build hexagons for right side of key."""
     colors = getColors()
-    x =  -21
+    x = -21
     y = -7
     color = 2
     size = 0.8
@@ -63,8 +67,9 @@ def buildSizeKey(ax):
         offset -= 0.2
 
 def buildKey(ax):
+    """Build hexagons for left side of key."""
     colors = getColors()
-    x =  21
+    x = 21
     y = -7
     color = 4
     size = 0.8
@@ -74,10 +79,11 @@ def buildKey(ax):
         hexagon.set_facecolor(colors[color])
         hexagon.set_edgecolor('black')
         ax.add_patch(hexagon)
-        x =  x - 1.4
+        x = x - 1.4
         color -= 1
 
 def getHexagonColor(average):
+    """Return appropriate color based on player shooting average"""
     colors = getColors()
 
     if average >= 0.07:
@@ -92,6 +98,7 @@ def getHexagonColor(average):
         return colors[4]
 
 def buildHexagon(x, y, ax, count, player_average):
+    """Build hexagon and append to chart"""
     size = setHexagonSize(count)
     shot_difference = getShotDifference(x, y, player_average)
 
@@ -127,34 +134,25 @@ def buildCourt(ax, color):
     # Create backboard
     backboard = patches.Rectangle((-3, -0.75), 6, -0.1, linewidth=lw, color=color)
 
-    # The paint
-
     # Create the outer box of the paint, width=16ft, height=19ft
-    outer_box = patches.Rectangle((-8, -5.25), 16, 19, linewidth=lw, color=color,
-                          fill=False)
+    outer_box = patches.Rectangle((-8, -5.25), 16, 19, linewidth=lw, color=color, fill=False)
 
     # Create the inner box of the paint, widt=12ft, height=19ft
-    inner_box = patches.Rectangle((-6, -5.25), 12, 19, linewidth=lw, color=color,
-                          fill=False)
+    inner_box = patches.Rectangle((-6, -5.25), 12, 19, linewidth=lw, color=color, fill=False)
 
     # Create free throw top arc
-    top_free_throw = patches.Arc((0, 13.75), 12, 12, theta1=0, theta2=180,
-                         linewidth=lw, color=color, fill=False)
+    top_free_throw = patches.Arc((0, 13.75), 12, 12, theta1=0, theta2=180, linewidth=lw, color=color, fill=False)
+
     # Create free throw bottom arc
-    bottom_free_throw = patches.Arc((0, 13.75), 12, 12, theta1=180, theta2=0,
-                            linewidth=lw, color=color, linestyle='dashed')
+    bottom_free_throw = patches.Arc((0, 13.75), 12, 12, theta1=180, theta2=0, linewidth=lw, color=color, linestyle='dashed')
+
     # Restricted Zone, it is an arc with 4ft radius from center of the hoop
-    restricted = patches.Arc((0, 0), 8, 8, theta1=0, theta2=180, linewidth=lw,
-                     color=color)
-
-    corner_three_a = patches.Rectangle((-22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw,
-                                   color=color)
-
+    restricted = patches.Arc((0, 0), 8, 8, theta1=0, theta2=180, linewidth=lw, color=color)
+    corner_three_a = patches.Rectangle((-22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw, color=color)
     corner_three_b = patches.Rectangle((22, -5.25), 0, np.sqrt(23.75**2-22.0**2)+5.25, linewidth=lw, color=color)
 
     # 3pt arc - center of arc will be the hoop, arc is 23'9" away from hoop
-    three_arc = patches.Arc((0, 0), 47.5, 47.5, theta1=np.arccos(22/23.75)*180/np.pi, theta2=180.0-np.arccos(22/23.75)*180/np.pi, linewidth=lw,
-                    color=color)
+    three_arc = patches.Arc((0, 0), 47.5, 47.5, theta1=np.arccos(22/23.75)*180/np.pi, theta2=180.0-np.arccos(22/23.75)*180/np.pi, linewidth=lw, color=color)
 
     # List of the court elements to be plotted onto the axes
     court_elements = [hoop, backboard, outer_box, top_free_throw, bottom_free_throw, restricted, corner_three_a, corner_three_b, three_arc]
@@ -165,59 +163,59 @@ def buildCourt(ax, color):
 
 # Get shot location
 # Citation: http://www.eyalshafran.com/grantland_shotchart.html
-def shot_zone(X,Y):
+def shot_zone(X, Y):
     '''
     Uses shot coordinates x and y (in feet - divide by 10 if using the shotchart units)
     and returns a tuple with the zone location
     '''
     r = np.sqrt(X**2+Y**2)
-    a = np.arctan2(Y,X)*180.0/np.pi
-    if (Y<0) & (X > 0):
+    a = np.arctan2(Y, X)*180.0/np.pi
+    if (Y < 0) & (X > 0):
         a = 0
-    elif (Y<0) & (X < 0):
+    elif (Y < 0) & (X < 0):
         a = 180
-    if r<=8:
-        z = ('Less Than 8 ft.','Center(C)')
-    elif (r>8) & (r<=16):
+    if r <= 8:
+        z = ('Less Than 8 ft.', 'Center(C)')
+    elif (r > 8) & (r <= 16):
         if a < 60:
-            z = ('8-16 ft.','Right Side(R)')
-        elif (a>=60) & (a<=120):
-            z = ('8-16 ft.','Center(C)')
+            z = ('8-16 ft.', 'Right Side(R)')
+        elif (a >= 60) & (a <= 120):
+            z = ('8-16 ft.', 'Center(C)')
         else:
-            z = ('8-16 ft.','Left Side(L)')
-    elif (r>16) & (r<=23.75):
+            z = ('8-16 ft.', 'Left Side(L)')
+    elif (r > 16) & (r <= 23.75):
         if a < 36:
-            z = ('16-24 ft.','Right Side(R)')
-        elif (a>=36) & (a<72):
-            z = ('16-24 ft.','Right Side Center(RC)')
-        elif (a>=72) & (a<=108):
-            z = ('16-24 ft.','Center(C)')
-        elif (a>108) & (a<144):
-            z = ('16-24 ft.','Left Side Center(LC)')
+            z = ('16-24 ft.', 'Right Side(R)')
+        elif (a >= 36) & (a < 72):
+            z = ('16-24 ft.', 'Right Side Center(RC)')
+        elif (a >= 72) & (a <= 108):
+            z = ('16-24 ft.', 'Center(C)')
+        elif (a > 108) & (a < 144):
+            z = ('16-24 ft.', 'Left Side Center(LC)')
         else:
-            z = ('16-24 ft.','Left Side(L)')
-    elif r>23.75:
+            z = ('16-24 ft.', 'Left Side(L)')
+    elif r > 23.75:
         if a < 72:
-            z = ('24+ ft.','Right Side Center(RC)')
-        elif (a>=72) & (a<=108):
-            z = ('24+ ft.','Center(C)')
+            z = ('24+ ft.', 'Right Side Center(RC)')
+        elif (a >= 72) & (a <= 108):
+            z = ('24+ ft.', 'Center(C)')
         else:
-            z = ('24+ ft.','Left Side Center(LC)')
-    if (np.abs(X)>=22):
-        if (X > 0) & (np.abs(Y)<8.75):
-            z = ('24+ ft.','Right Side(R)')
-        elif (X < 0) & (np.abs(Y)<8.75):
-            z = ('24+ ft.','Left Side(L)')
-        elif (X > 0) & (np.abs(Y)>=8.75):
-            z = ('24+ ft.','Right Side Center(RC)')
-        elif (X < 0) & (np.abs(Y)>=8.75):
-            z = ('24+ ft.','Left Side Center(LC)')
+            z = ('24+ ft.', 'Left Side Center(LC)')
+    if np.abs(X) >= 22:
+        if X > 0 & (np.abs(Y) < 8.75):
+            z = ('24+ ft.', 'Right Side(R)')
+        elif X < 0 & (np.abs(Y) < 8.75):
+            z = ('24+ ft.', 'Left Side(L)')
+        elif X > 0 & (np.abs(Y) >= 8.75):
+            z = ('24+ ft.', 'Right Side Center(RC)')
+        elif X < 0 & (np.abs(Y) >= 8.75):
+            z = ('24+ ft.', 'Left Side Center(LC)')
     if Y >= 40:
         z = ('Back Court Shot', 'Back Court(BC)')
     return z
 
 def getAverage(z):
-    if (len(z) > 0):
+    if len(z) > 0:
         average = sum(z)/float(len(z))
         return average
     else:
@@ -232,12 +230,12 @@ def getShotChart(playerName, year, data, fileName, limit):
     shots = pd.DataFrame(data['resultSets'][0]['rowSet'], columns=data['resultSets'][0]['headers'])
 
     # Reduce league averages
-    l_average = averages.loc[:,'SHOT_ZONE_AREA':'FGM'].groupby(['SHOT_ZONE_RANGE','SHOT_ZONE_AREA']).sum()
+    l_average = averages.loc[:, 'SHOT_ZONE_AREA':'FGM'].groupby(['SHOT_ZONE_RANGE', 'SHOT_ZONE_AREA']).sum()
     l_average['FGP'] = 1.0*l_average['FGM']/l_average['FGA'] # create new column with FG%
     l_zone = l_average.index.get_level_values('SHOT_ZONE_AREA').tolist()
     l_range = l_average.index.get_level_values('SHOT_ZONE_RANGE').tolist()
-    l_average['SHOT_ZONE_AREA'] = l_zone 
-    l_average['SHOT_ZONE_RANGE'] = l_range 
+    l_average['SHOT_ZONE_AREA'] = l_zone
+    l_average['SHOT_ZONE_RANGE'] = l_range
 
     # return only appropriate columns for player
     player_info = shots[['LOC_X', 'LOC_Y', 'SHOT_ZONE_AREA', 'SHOT_ZONE_RANGE', 'SHOT_MADE_FLAG', 'GAME_DATE']].copy()
@@ -250,8 +248,8 @@ def getShotChart(playerName, year, data, fileName, limit):
     player_zones = player_info.groupby(['SHOT_ZONE_AREA', 'SHOT_ZONE_RANGE']).aggregate(np.average)
     court_zone = player_zones.index.get_level_values('SHOT_ZONE_AREA').tolist()
     court_range = player_zones.index.get_level_values('SHOT_ZONE_RANGE').tolist()
-    player_zones['SHOT_ZONE_AREA'] = court_zone 
-    player_zones['SHOT_ZONE_RANGE'] = court_range 
+    player_zones['SHOT_ZONE_AREA'] = court_zone
+    player_zones['SHOT_ZONE_RANGE'] = court_range
     player_average = player_zones[['SHOT_ZONE_AREA', 'SHOT_ZONE_RANGE', 'SHOT_MADE_FLAG']].copy()
     player_average = player_average.merge(l_average, how = 'left', on = ['SHOT_ZONE_RANGE', 'SHOT_ZONE_AREA'])
     player_average['difference'] = player_average['SHOT_MADE_FLAG'] - player_average['FGP']
@@ -259,7 +257,7 @@ def getShotChart(playerName, year, data, fileName, limit):
     x = 0.1 * player_info.LOC_X
     y = 0.1 * player_info.LOC_Y
     z = player_info.SHOT_MADE_FLAG
-    
+
     # Get averages for hexbins
     poly = plt.hexbin(x, y, C=z, gridsize=35, extent=[-25,25,-6.25,50-6.25], reduce_C_function=getAverage)
     averages = poly.get_array()
@@ -270,7 +268,7 @@ def getShotChart(playerName, year, data, fileName, limit):
     paths = poly.get_paths()
     counts = poly.get_array()
 
-    fig = plt.figure(figsize=(26.8, 24)) 
+    fig = plt.figure(figsize=(26.8, 24))
     # fig.set_facecolor("black")
     ax = plt.gca(xlim=[30,-30], ylim = [-10,40], aspect=1.0)
 
@@ -287,17 +285,18 @@ def getShotChart(playerName, year, data, fileName, limit):
 
     # Hide axes
     ax.axis('off')
-    
+
     # Save file
     plt.savefig((fileName), bbox_inches='tight', facecolor='black', transparent=False)
 
 # Citation: http://www.eyalshafran.com/grantland_shotchart.html
 def commonallplayers(currentseason=0,leagueid='00',season='2015-16'):
+    """Get every player id"""
     url = 'http://stats.nba.com/stats/commonallplayers?'
     api_param = {
         'IsOnlyCurrentSeason' : currentseason,
         'LeagueID' : leagueid,
-        'Season' : season,             
+        'Season' : season,
     }
     u_a = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.82 Safari/537.36"
     response = requests.get(url,params=api_param,headers={"USER-AGENT":u_a})
@@ -324,13 +323,14 @@ def getShotVolume(data):
     return volume
 
 def createSeries(playerName, year):
+    """Create heat map for each shot."""
     playerId = getPlayerId(playerName)
     data = getFromNBA(playerId, year)
     size = getShotVolume(data)
 
     for index in range(0, size):
         fileName = str(index)
-        getShotChart(" ", " ", data, fileName, index) 
+        getShotChart(" ", " ", data, fileName, index)
 
 def shotChart(playerName, year):
     playerId = getPlayerId(playerName)
@@ -340,15 +340,14 @@ def shotChart(playerName, year):
     size = getShotVolume(data)
 
     fileName = playerName + "_" + year
-    getShotChart(playerName, year, data, fileName, size) 
-
+    getShotChart(playerName, year, data, fileName, size)
 
 def main():
     print(sys.argv[1])
 
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print ("usage: %s <firstname> <lastname> <year>" % (sys.argv[0]))
-        print ("example: %s Damian Lillard 2017-18" sys.argv[0]))
+        print ("example: %s Damian Lillard 2017-18" % (sys.argv[0]))
         sys.exit(2)
 
     playerName = sys.argv[1] + " " + sys.argv[2]
