@@ -346,8 +346,8 @@ def main():
     print(sys.argv[1])
 
     if len(sys.argv) < 4:
-        print ("usage: %s <firstname> <lastname> <year>" % (sys.argv[0]))
-        print ("example: %s Damian Lillard 2017-18" % (sys.argv[0]))
+        print ("usage: python3 %s <firstname> <lastname> <year>" % (sys.argv[0]))
+        print ('example: python3 %s "Damian" "Lillard" "2017-18"' % (sys.argv[0]))
         sys.exit(2)
 
     playerName = sys.argv[1] + " " + sys.argv[2]
